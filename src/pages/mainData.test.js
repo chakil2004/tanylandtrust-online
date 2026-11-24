@@ -18,15 +18,36 @@ test('loads real parcel rows from the protected map-data endpoint', async () => 
 })
 
 test('owner delete control requires a fresh effective-rights result, waits for confirmation, and never trusts account fields', () => {
-  assert.match(mainSource, /loadOwnerParcelDeletionRights\(request\)/)
+  assert.match(mainSource, /loadAccountOffer\(request, \{ localBackend \}\)/)
+  assert.match(mainSource, /plan: offer\.code/)
+  assert.match(mainSource, /parcelCount: offer\.parcelCount/)
+  assert.match(mainSource, /parcelLimit: offer\.parcelLimit/)
   assert.match(mainSource, /showOwnerDelete\(row\.id\) && <div className="main-parcel-delete-wrap"/)
   assert.match(mainSource, /deleteOwnedParcel\(request, parcelId, \{ confirmed: true \}\)/)
   assert.match(mainSource, /deleteFlightRef\.current = true/)
   assert.match(mainSource, /onClick=\{cancelDeleteParcel\}/)
   assert.match(mainSource, /removeDeletedOwnerParcel\(/)
-  assert.match(mainSource, /setOwnerDeletionRights\(\{ status: 'loading', canDeleteOwnedParcels: false \}\)/)
+  assert.match(mainSource, /setOwnerOffer\(\{ status: 'loading', canDeleteOwnedParcels: false \}\)/)
+  assert.match(mainSource, /ownerOfferPlanLabel\(ownerOffer\)/)
+  assert.match(mainSource, /ownerParcelQuotaLabel\(ownerOffer\)/)
   assert.doesNotMatch(mainSource, /user\?\.account|profiles\.account/)
   assert.match(mainSource, /protected archive/)
+})
+
+test('effective offer and quota refresh after manual creation and KML import', () => {
+  assert.match(mainSource, /ownerParcelQuotaLabel\(ownerOffer\)/)
+  assert.match(mainSource, /className="main-sidebar-offer-badge"/)
+  assert.match(mainSource, /\}, \[request, reloadKey\]\)/)
+
+  const addSuccess = mainSource
+    .split('const response = await createParcel(request, addForm, draftGeometry, user?.email, localBackend)')[1]
+    .split('} catch (failure)')[0]
+  assert.match(addSuccess, /setReloadKey\(\(key\) => key \+ 1\)/)
+
+  const importSuccess = mainSource
+    .split('function completeKmlImport() {')[1]
+    .split('function closeAdd()')[0]
+  assert.match(importSuccess, /setReloadKey\(\(key\) => key \+ 1\)/)
 })
 
 test('successful owner deletion immediately removes the row and clears its map and confirmation selection without reloading', () => {
@@ -49,7 +70,8 @@ test('successful owner deletion immediately removes the row and clears its map a
     .split('} catch (failure)')[0]
   assert.ok(successPath, 'Main must apply the tested successful-delete transition')
   assert.match(successPath, /removeDeletedOwnerParcel\(/)
-  assert.doesNotMatch(successPath, /setReloadKey|loadParcels|loadOwnerParcelDeletionRights/)
+  assert.match(successPath, /ownerOfferAfterParcelDeletion\(current\)/)
+  assert.doesNotMatch(successPath, /setReloadKey|loadParcels|loadAccountOffer/)
 })
 
 test('the actual flat HTTP 200 deletion JSON reaches Main as success and immediately clears its parcel state', async () => {

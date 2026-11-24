@@ -9,9 +9,10 @@ import { accountDisplayName, accountPageFromHash, accountPageHash, isAccountMenu
 import {
   canShowOwnerParcelDelete,
   deleteOwnedParcel,
-  effectiveOfferSummary,
-  loadOwnerParcelDeletionRights,
   markOwnerParcelDeleteDenied,
+  ownerOfferAfterParcelDeletion,
+  ownerOfferPlanLabel,
+  ownerParcelQuotaLabel,
   parcelDeletionErrorMessage,
 } from '../api/parcelDeletion.js'
 import Icon from '../components/Icon.jsx'
@@ -100,7 +101,7 @@ function Dashboard({ lang }) {
   const { request, user, downloadKml } = useAuth()
   const localBackend = isLocalBackendConfigured()
   const editFields = localFields
-  const [ownerDeletionRights, setOwnerDeletionRights] = useState(() => ({
+  const [ownerOffer, setOwnerOffer] = useState(() => ({
     status: 'loading',
     canDeleteOwnedParcels: false,
   }))
@@ -138,13 +139,19 @@ function Dashboard({ lang }) {
     let live = true
     requestAnimationFrame(() => { if (live) { setLoading(true); setError(null) } })
     loadParcels(request).then((rows) => { if (live) setParcels(rows) }).catch((failure) => { if (live) setError(failure) }).finally(() => { if (live) setLoading(false) })
-    setOwnerDeletionRights({ status: 'loading', canDeleteOwnedParcels: false })
-    loadOwnerParcelDeletionRights(request)
-      .then((rights) => {
-        if (live) setOwnerDeletionRights({ status: 'ready', ...rights })
+    setOwnerOffer({ status: 'loading', canDeleteOwnedParcels: false })
+    loadAccountOffer(request, { localBackend })
+      .then((offer) => {
+        if (live) setOwnerOffer({
+          status: 'ready',
+          plan: offer.code,
+          parcelCount: offer.parcelCount,
+          parcelLimit: offer.parcelLimit,
+          canDeleteOwnedParcels: offer.canDeleteOwnedParcels,
+        })
       })
       .catch(() => {
-        if (live) setOwnerDeletionRights({ status: 'error', canDeleteOwnedParcels: false })
+        if (live) setOwnerOffer({ status: 'error', canDeleteOwnedParcels: false })
       })
     return () => { live = false }
   }, [request, reloadKey])
@@ -310,7 +317,7 @@ function Dashboard({ lang }) {
   async function confirmDeleteParcel(id) {
     const parcelId = String(id)
     if (!canShowOwnerParcelDelete({
-      rights: ownerDeletionRights,
+      rights: ownerOffer,
       parcelId,
       deniedParcelIds: ownerDeletionDeniedIds,
     }) || deletePending || deleteFlightRef.current || deleteConfirmationId !== parcelId) return
@@ -323,6 +330,7 @@ function Dashboard({ lang }) {
         parcels, selectedParcelId, expandedParcelId, deleteConfirmationId,
       }, deletion.parcelId)
       setParcels(nextState.parcels)
+      setOwnerOffer((current) => ownerOfferAfterParcelDeletion(current))
       setSelectedParcelId(nextState.selectedParcelId)
       setExpandedParcelId(nextState.expandedParcelId)
       setDeleteConfirmationId(nextState.deleteConfirmationId)
@@ -334,7 +342,7 @@ function Dashboard({ lang }) {
       if (Number(failure?.status) === 403) {
         setOwnerDeletionDeniedIds((current) => markOwnerParcelDeleteDenied(current, parcelId, failure.status))
         setDeleteConfirmationId(null)
-        setOwnerDeletionRights({ status: 'loading', canDeleteOwnedParcels: false })
+        setOwnerOffer({ status: 'loading', canDeleteOwnedParcels: false })
         setReloadKey((key) => key + 1)
       }
     } finally {
@@ -392,7 +400,7 @@ function Dashboard({ lang }) {
     })
   const hasParcelDates = parcels.some((row) => ['updated_at', 'updatedAt', 'created_at', 'createdAt'].some((key) => Number.isFinite(Date.parse(row[key] ?? ''))))
   const showOwnerDelete = (parcelId) => canShowOwnerParcelDelete({
-    rights: ownerDeletionRights,
+    rights: ownerOffer,
     parcelId,
     deniedParcelIds: ownerDeletionDeniedIds,
   })
@@ -435,10 +443,13 @@ function Dashboard({ lang }) {
               </div>
             </form> : kmlImportOpen ? <KmlImport layout="manager-column" request={request} userEmail={user?.email} localBackend={localBackend} lang={lang} onClose={closeKmlImport} onImported={completeKmlImport} /> :
           <aside className="main-parcel-sidebar" aria-label={lang === 'fr' ? 'Gestion des parcelles' : 'Parcel manager'}>
-            <div className="main-sidebar-heading"><h3>{lang === 'fr' ? 'Gestionnaire de parcelles' : 'Parcel Manager'}</h3><span>{loading ? '…' : parcels.length}</span></div>
-            {ownerDeletionRights.status === 'loading' && <p className="main-rights-state" role="status">{lang === 'fr' ? 'Vérification du droit de suppression…' : 'Checking parcel deletion rights…'}</p>}
-            {ownerDeletionRights.status === 'error' && <div className="main-rights-state main-list-error" role="alert"><p>{lang === 'fr' ? 'Le droit de suppression est indisponible ; l’action reste masquée.' : 'Deletion rights are unavailable; the action remains hidden.'}</p><button type="button" onClick={() => setReloadKey((key) => key + 1)}>{lang === 'fr' ? 'Réessayer' : 'Retry'}</button></div>}
-            {ownerDeletionRights.status === 'ready' && <p className="main-rights-state" aria-live="polite">{effectiveOfferSummary(ownerDeletionRights, lang)}</p>}
+            <div className="main-sidebar-heading"><h3>{lang === 'fr' ? 'Gestionnaire de parcelles' : 'Parcel Manager'}</h3><span>{ownerParcelQuotaLabel(ownerOffer) ?? '…'}</span></div>
+            <div className="main-sidebar-offer-row" aria-live="polite">
+              {ownerOfferPlanLabel(ownerOffer)
+                ? <span className="main-sidebar-offer-badge">{ownerOfferPlanLabel(ownerOffer)}</span>
+                : ownerOffer.status === 'loading' && <span className="main-sidebar-offer-badge" role="status" aria-label={lang === 'fr' ? 'Chargement de l’abonnement' : 'Loading subscription'}>…</span>}
+            </div>
+            {ownerOffer.status === 'error' && <div className="main-rights-state main-list-error" role="alert"><p>{lang === 'fr' ? 'L’offre et le quota sont indisponibles ; l’action reste masquée.' : 'Offer and parcel quota are unavailable; the action remains hidden.'}</p><button type="button" onClick={() => setReloadKey((key) => key + 1)}>{lang === 'fr' ? 'Réessayer' : 'Retry'}</button></div>}
             {deleteError && deleteConfirmationId === null && <p className="main-parcel-delete-error" role="alert">{parcelDeletionErrorMessage(deleteError, lang, 'pro')}</p>}
             <div className="main-actions">
               <button type="button" onClick={beginAdd}>{lang === 'fr' ? 'Ajouter' : 'Add'}</button>

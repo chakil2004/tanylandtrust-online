@@ -87,20 +87,23 @@ export function loadOwnerParcelDeletionRights(request) {
   return flight
 }
 
-export function effectiveOfferSummary(rights, lang = 'en') {
-  if (rights?.status !== 'ready' || !['free', 'pro'].includes(rights.plan) ||
-      !Number.isSafeInteger(rights.parcelLimit) || rights.parcelLimit < 1) return null
-  const plan = rights.plan === 'pro' ? 'Pro' : 'Free'
-  if (lang === 'fr') {
-    const deleteRight = rights.canDeleteOwnedParcels === true
-      ? 'suppression des parcelles personnelles autoris\u00e9e'
-      : 'suppression des parcelles personnelles indisponible'
-    return 'Offre effective (souscriptions actuelles) : ' + plan + ' \u2014 limite ' + rights.parcelLimit + ' parcelles \u2014 ' + deleteRight + '.'
-  }
-  const deleteRight = rights.canDeleteOwnedParcels === true
-    ? 'deletion of owned parcels allowed'
-    : 'deletion of owned parcels unavailable'
-  return 'Effective offer (current subscriptions): ' + plan + ' \u2014 ' + rights.parcelLimit + '-parcel limit \u2014 ' + deleteRight + '.'
+export function ownerOfferPlanLabel(offer) {
+  if (offer?.status !== 'ready') return null
+  if (offer.plan === 'free') return 'Free'
+  if (offer.plan === 'pro') return 'Pro'
+  return null
+}
+
+export function ownerParcelQuotaLabel(offer) {
+  if (offer?.status !== 'ready' || !['free', 'pro'].includes(offer.plan) ||
+      !Number.isSafeInteger(offer.parcelCount) || offer.parcelCount < 0 ||
+      !Number.isSafeInteger(offer.parcelLimit) || offer.parcelLimit < 1) return null
+  return `${offer.parcelCount} / ${offer.parcelLimit}`
+}
+
+export function ownerOfferAfterParcelDeletion(offer) {
+  if (offer?.status !== 'ready' || !Number.isSafeInteger(offer.parcelCount) || offer.parcelCount < 1) return offer
+  return { ...offer, parcelCount: offer.parcelCount - 1 }
 }
 
 export function canShowOwnerParcelDelete({ rights, parcelId, deniedParcelIds }) {

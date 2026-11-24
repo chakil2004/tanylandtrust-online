@@ -253,7 +253,7 @@ test('sends a support reply by thread ID without client supplied sender or recip
   })
 })
 
-test('local thread display and list explain that unlinked history is excluded without merging it', async () => {
+test('local thread list excludes unlinked history without showing an explanatory note', async () => {
   assert.deepEqual(conversationDisplay(localConversation, 'buyer@example.test'), {
     email: 'seller@example.test', title: 'Seller', subtitle: 'Parcel 42',
   })
@@ -265,8 +265,7 @@ test('local thread display and list explain that unlinked history is excluded wi
   }), 'buyer@example.test')
   assert.equal(result.unlinkedHistoryExcluded, true)
   assert.deepEqual(result.conversations, [localConversation])
-  assert.match(chatSource, /unlinkedHistory: 'Les anciens messages sans lien de conversation sont conservés à part/)
-  assert.match(chatSource, /role="note">\{t\.unlinkedHistory\}/)
+  assert.doesNotMatch(chatSource, /unlinkedHistory|chat-react-history-note|Les anciens messages sans lien de conversation/)
   assert.match(chatSource, /conversation\.conversation_id != null/)
   assert.match(chatSource, /String\(message\.sender_profile_id\) === String\(selectedConversation\.current_profile_id\)/)
 })

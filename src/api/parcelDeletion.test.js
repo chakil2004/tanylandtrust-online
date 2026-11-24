@@ -5,9 +5,11 @@ import {
   canShowOwnerParcelDelete,
   deleteAdminParcel,
   deleteOwnedParcel,
-  effectiveOfferSummary,
   loadOwnerParcelDeletionRights,
   markOwnerParcelDeleteDenied,
+  ownerOfferAfterParcelDeletion,
+  ownerOfferPlanLabel,
+  ownerParcelQuotaLabel,
   parcelDeletionErrorMessage,
 } from './parcelDeletion.js'
 import { readFile } from 'node:fs/promises'
@@ -211,15 +213,25 @@ test('owner delete stays hidden while rights load or fail and is available in th
   assert.equal(canShowOwnerParcelDelete({ rights: { status: 'error', canDeleteOwnedParcels: false }, parcelId }), false)
 })
 
-test('owner offer summary is sourced from current server rights and stays hidden during load or failure', () => {
-  const pro = { status: 'ready', plan: 'pro', parcelLimit: 20, canDeleteOwnedParcels: true }
-  const freeAfterExpiry = { status: 'ready', plan: 'free', parcelLimit: 2, canDeleteOwnedParcels: false }
-  assert.ok(effectiveOfferSummary(pro, 'fr').includes('Offre effective (souscriptions actuelles) : Pro'))
-  assert.ok(effectiveOfferSummary(pro, 'fr').includes('20 parcelles'))
-  assert.match(effectiveOfferSummary(freeAfterExpiry), /Effective offer \(current subscriptions\): Free.*2-parcel limit/i)
-  assert.equal(canShowOwnerParcelDelete({ rights: freeAfterExpiry, parcelId: 5 }), false)
-  assert.equal(effectiveOfferSummary({ ...pro, status: 'loading' }), null)
-  assert.equal(effectiveOfferSummary({ ...freeAfterExpiry, status: 'error' }), null)
+test('manager shows the server offer code and quota without inferring Pro from the limit', () => {
+  const pro = { status: 'ready', plan: 'pro', parcelCount: 2, parcelLimit: 20, canDeleteOwnedParcels: true }
+  const free = { status: 'ready', plan: 'free', parcelCount: 2, parcelLimit: 2, canDeleteOwnedParcels: false }
+  assert.equal(ownerOfferPlanLabel(pro), 'Pro')
+  assert.equal(ownerParcelQuotaLabel(pro), '2 / 20')
+  assert.equal(ownerOfferPlanLabel(free), 'Free')
+  assert.equal(ownerParcelQuotaLabel(free), '2 / 2')
+  assert.equal(ownerOfferPlanLabel({ ...free, parcelLimit: 20 }), 'Free')
+  assert.equal(ownerOfferPlanLabel({ ...pro, status: 'loading' }), null)
+  assert.equal(ownerParcelQuotaLabel({ ...free, status: 'error' }), null)
+  assert.equal(canShowOwnerParcelDelete({ rights: free, parcelId: 5 }), false)
+})
+
+test('successful deletion immediately decrements the displayed quota without changing the plan', () => {
+  const pro = { status: 'ready', plan: 'pro', parcelCount: 2, parcelLimit: 20, canDeleteOwnedParcels: true }
+  const next = ownerOfferAfterParcelDeletion(pro)
+  assert.equal(ownerOfferPlanLabel(next), 'Pro')
+  assert.equal(ownerParcelQuotaLabel(next), '1 / 20')
+  assert.equal(pro.parcelCount, 2)
 })
 
 test('a 403 after a visible owner delete action hides that parcel action and triggers a fresh read', () => {

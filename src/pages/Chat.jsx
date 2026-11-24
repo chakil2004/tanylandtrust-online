@@ -22,7 +22,6 @@ const copy = {
     loading: 'Loading conversations…', loadingMessages: 'Loading messages…', retry: 'Retry', noConversations: 'No conversations yet.',
     conversationsError: 'Unable to load conversations.', messagesError: 'Unable to load messages.', sendMessageError: 'Unable to send this message.',
     noSearchResults: 'No conversations match this search.', noMessages: 'No messages in this conversation yet.',
-    unlinkedHistory: 'Older messages without a conversation link are kept separate and are not shown in these threads.',
     placeholder: 'Write a message…', send: 'Send message', sending: 'Sending…', now: 'Now',
     adminTitle: 'Write to Admin', adminDescription: 'Your message will be sent directly to the admin team.',
     adminUuidUnavailable: 'A secure UUID generator is unavailable in this browser.',
@@ -35,7 +34,6 @@ const copy = {
     loading: 'Chargement des conversations…', loadingMessages: 'Chargement des messages…', retry: 'Réessayer', noConversations: 'Aucune conversation pour le moment.',
     conversationsError: 'Impossible de charger les conversations.', messagesError: 'Impossible de charger les messages.', sendMessageError: 'Impossible d’envoyer ce message.',
     noSearchResults: 'Aucune conversation ne correspond à cette recherche.', noMessages: 'Aucun message dans cette conversation.',
-    unlinkedHistory: 'Les anciens messages sans lien de conversation sont conservés à part et ne sont pas affichés dans ces fils.',
     placeholder: 'Écrire un message…', send: 'Envoyer', sending: 'Envoi…', now: 'À l’instant',
     adminTitle: 'Écrire à l’administration', adminDescription: 'Votre message sera envoyé directement à l’équipe d’administration.',
     adminUuidUnavailable: 'Un générateur d’UUID sécurisé n’est pas disponible dans ce navigateur.',
@@ -70,7 +68,6 @@ export default function Chat({ lang = 'en', localBackend = isLocalBackendConfigu
   const [conversations, setConversations] = useState([])
   const [conversationsLoading, setConversationsLoading] = useState(true)
   const [conversationsError, setConversationsError] = useState('')
-  const [unlinkedHistoryExcluded, setUnlinkedHistoryExcluded] = useState(false)
   const [conversationRetry, setConversationRetry] = useState(0)
   const [query, setQuery] = useState('')
   const [selectedConversation, setSelectedConversation] = useState(null)
@@ -107,10 +104,9 @@ export default function Chat({ lang = 'en', localBackend = isLocalBackendConfigu
     if (!user?.email) return () => { active = false }
 
     loadConversations(request, user.email)
-      .then(({ conversations: rows, unlinkedHistoryExcluded: historyExcluded }) => {
+      .then(({ conversations: rows }) => {
         if (active) {
           setConversations(rows)
-          setUnlinkedHistoryExcluded(historyExcluded)
           const refreshedSelection = findRefreshedConversation(selectedConversationRef.current, rows)
           selectedConversationRef.current = refreshedSelection
           setSelectedConversation(refreshedSelection)
@@ -297,7 +293,6 @@ export default function Chat({ lang = 'en', localBackend = isLocalBackendConfigu
           <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} />
         </label>
 
-        {!conversationsLoading && !conversationsError && unlinkedHistoryExcluded && <p className="chat-react-history-note" role="note">{t.unlinkedHistory}</p>}
         <div className="chat-react-conversation-list" aria-live="polite" aria-busy={conversationsLoading}>
           {conversationsLoading && <p className="chat-react-list-state" role="status">{t.loading}</p>}
           {!conversationsLoading && conversationsError && <ChatError error={chatErrorText(conversationsError, t, 'conversationsError', lang)} retryLabel={t.retry} onRetry={() => { setConversationsLoading(true); setConversationsError(''); setConversationRetry((value) => value + 1) }} />}
