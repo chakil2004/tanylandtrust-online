@@ -6,7 +6,7 @@ const PAGE_MODELS = Object.freeze({
     description: 'Platform overview.',
     metrics: [
       'Listings for sale now',
-      'Contacted listings',
+      'Visible listings contacted in the last 30 days',
       'Conversations awaiting first reply',
       'Registrations this month',
       'Recent internal findings',

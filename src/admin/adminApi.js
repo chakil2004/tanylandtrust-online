@@ -2,7 +2,10 @@ import { ApiError } from '../api/client.js'
 import {
   ADMIN_REGISTRATION_DEFAULT_MONTHS,
   ADMIN_REGISTRATION_MAX_MONTHS,
+  isValidAdminAuthAccountCreations,
   isValidAdminDashboardMetrics,
+  isValidAdminMarketplaceConversationCreations,
+  isValidAdminParcelCreations,
   isValidAdminRegistrationDashboard,
 } from './adminDashboardData.js'
 
@@ -12,6 +15,9 @@ export const ADMIN_USERS_PATH = '/admin/users'
 export const ADMIN_CONVERSATIONS_PATH = '/admin/conversations'
 export const ADMIN_DASHBOARD_REGISTRATIONS_PATH = '/admin/dashboard/registrations'
 export const ADMIN_DASHBOARD_METRICS_PATH = '/admin/dashboard/metrics'
+export const ADMIN_DASHBOARD_AUTH_ACCOUNT_CREATIONS_PATH = '/admin/dashboard/auth-account-creations'
+export const ADMIN_DASHBOARD_PARCEL_CREATIONS_PATH = '/admin/dashboard/parcel-creations'
+export const ADMIN_DASHBOARD_MARKETPLACE_CONVERSATION_CREATIONS_PATH = '/admin/dashboard/marketplace-conversation-creations'
 export const ADMIN_CONVERSATION_REPORTS_PATH = '/admin/conversation-reports'
 export const ADMIN_CONVERSATION_REPORT_MAX_LENGTH = 2000
 export const ADMIN_PARCEL_VISIBILITY_REASON_MAX_LENGTH = 1000
@@ -64,6 +70,39 @@ export async function loadAdminDashboardMetrics(request) {
   const response = await request(ADMIN_DASHBOARD_METRICS_PATH, { method: 'GET' })
   if (!isValidAdminDashboardMetrics(response?.data)) {
     throw new ApiError('protocol', 'Le serveur a renvoyé des indicateurs administrateur invalides.')
+  }
+  return response.data
+}
+
+export async function loadAdminDashboardAuthAccountCreations(request) {
+  if (typeof request !== 'function') {
+    throw new ApiError('protocol', 'The account creation chart is unavailable.')
+  }
+  const response = await request(ADMIN_DASHBOARD_AUTH_ACCOUNT_CREATIONS_PATH, { method: 'GET' })
+  if (!isValidAdminAuthAccountCreations(response?.data)) {
+    throw new ApiError('protocol', 'The server returned invalid Auth account creation data.')
+  }
+  return response.data
+}
+
+export async function loadAdminDashboardParcelCreations(request) {
+  if (typeof request !== 'function') {
+    throw new ApiError('protocol', 'The parcel creation chart is unavailable.')
+  }
+  const response = await request(ADMIN_DASHBOARD_PARCEL_CREATIONS_PATH, { method: 'GET' })
+  if (!isValidAdminParcelCreations(response?.data)) {
+    throw new ApiError('protocol', 'The server returned invalid parcel creation data.')
+  }
+  return response.data
+}
+
+export async function loadAdminDashboardMarketplaceConversationCreations(request) {
+  if (typeof request !== 'function') {
+    throw new ApiError('protocol', 'The Marketplace conversation creation chart is unavailable.')
+  }
+  const response = await request(ADMIN_DASHBOARD_MARKETPLACE_CONVERSATION_CREATIONS_PATH, { method: 'GET' })
+  if (!isValidAdminMarketplaceConversationCreations(response?.data)) {
+    throw new ApiError('protocol', 'The server returned invalid Marketplace conversation creation data.')
   }
   return response.data
 }

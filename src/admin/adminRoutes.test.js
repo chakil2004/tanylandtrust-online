@@ -41,7 +41,7 @@ test('dashboard and records expose their labels without carrying fabricated reco
   const dashboard = getAdminPageModel(resolveAdminRoute('/admin/dashboard'))
   assert.equal(dashboard.kind, 'dashboard')
   assert.deepEqual(dashboard.metrics, [
-    'Listings for sale now', 'Contacted listings',
+    'Listings for sale now', 'Visible listings contacted in the last 30 days',
     'Conversations awaiting first reply', 'Registrations this month', 'Recent internal findings',
   ])
   assert.equal(Object.hasOwn(dashboard, 'charts'), false)

@@ -138,9 +138,29 @@
 .admin-metric-label { display: block; color: #344338; font-size: 10px; line-height: 1.35; }
 .admin-metric-card .admin-data-unavailable { margin-top: 6px; color: #839086; font-size: 9px; }
 .admin-metric-value { display: block; margin-top: 2px; color: #24382a; font-size: 20px; line-height: 1.1; }
+.admin-metric-percentage { display: block; margin-top: 2px; color: #315c37; font-size: 12px; font-weight: 700; line-height: 1.2; }
 .admin-metric-period { display: block; margin-top: 3px; color: #758277; font-size: 9px; }
 .admin-dashboard-definition { margin: -8px 0 15px; color: #d9e2d9; font-size: 10px; line-height: 1.45; }
 .admin-dashboard-error { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 14px; padding: 8px 11px; border: 1px solid rgb(255 210 185 / 50%); border-radius: 5px; color: #ffe2c4; font-size: 11px; }
+.admin-auth-chart-card { min-width: 0; margin-top: 8px; padding: clamp(13px, 2vw, 20px); border-radius: 9px; color: #24382a; background: #fff; }
+.admin-auth-chart-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.admin-auth-chart-heading h2 { margin: 0; color: #193b29; font-size: clamp(16px, 1.8vw, 20px); font-weight: 600; }
+.admin-auth-chart-heading p, .admin-auth-chart-note { margin: 5px 0 0; color: #647369; font-size: 11px; line-height: 1.45; }
+.admin-auth-chart-as-of { flex: 0 0 auto; color: #586b5d; font-size: 10px; text-align: right; }
+.admin-auth-chart-scroll { max-width: 100%; margin-top: 12px; overflow-x: auto; overscroll-behavior-x: contain; touch-action: pan-x pan-y; }
+.admin-auth-chart-scroll:focus-visible { outline: 2px solid #0c6c47; outline-offset: 2px; }
+.admin-auth-chart-svg { display: block; max-width: none; }
+.admin-auth-chart-tick line { stroke: #e4e9e4; stroke-width: 1; }
+.admin-auth-chart-tick text, .admin-auth-chart-month-label { fill: #5b6a60; font-size: 10px; }
+.admin-auth-chart-axis { stroke: #708074; stroke-width: 1.2; }
+.admin-auth-chart-hit-area { fill: transparent; cursor: crosshair; }
+.admin-auth-chart-hit-area:focus-visible { outline: none; stroke: #d6a93b; stroke-width: 2.5; }
+.admin-auth-chart-bar { fill: #236343; pointer-events: none; }
+.admin-auth-chart-month:focus-within .admin-auth-chart-bar { fill: #2f8058; }
+.admin-auth-chart-status, .admin-auth-chart-empty { min-height: 108px; display: grid; place-items: center; margin: 10px 0 0; color: #647369; font-size: 12px; text-align: center; }
+.admin-auth-chart-error { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding: 9px 11px; border: 1px solid #d7b6a7; border-radius: 5px; color: #784832; font-size: 11px; }
+.admin-auth-chart-error p { margin: 0; }
+.admin-auth-chart-note { margin-top: 7px; }
 .admin-dashboard-error p { margin: 0; }
 .admin-dashboard-error .admin-retry-button { flex: 0 0 auto; }
 .admin-metric-filter-note { margin: 0 0 12px; color: #d9e2d9; font-size: 10px; line-height: 1.5; }
@@ -385,6 +405,7 @@
   .admin-dashboard-panel .admin-metric-label { font-size: 11px; }
   .admin-dashboard-panel .admin-metric-card .admin-data-unavailable,
   .admin-dashboard-panel .admin-metric-period,
+  .admin-dashboard-panel .admin-metric-percentage,
   .admin-dashboard-panel .admin-metric-zero,
   .admin-dashboard-panel .admin-metric-open { font-size: 10px; }
   .admin-dashboard-definition,

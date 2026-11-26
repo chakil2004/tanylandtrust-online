@@ -21,7 +21,7 @@ test('admin list models expose the columns represented by the reference layouts 
 test('admin dashboard model keeps labels without embedding fabricated metric values', () => {
   const model = getAdminPageModel(resolveAdminRoute('/admin/dashboard'))
   assert.deepEqual(model.metrics, [
-    'Listings for sale now', 'Contacted listings',
+    'Listings for sale now', 'Visible listings contacted in the last 30 days',
     'Conversations awaiting first reply', 'Registrations this month', 'Recent internal findings',
   ])
   assert.equal(Object.hasOwn(model, 'charts'), false)

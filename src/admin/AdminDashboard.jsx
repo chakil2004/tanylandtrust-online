@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
 import { apiErrorMessage } from '../api/apiErrorMessages.js'
-import { loadAdminDashboardMetrics } from './adminApi.js'
+import {
+  loadAdminDashboardAuthAccountCreations,
+  loadAdminDashboardMarketplaceConversationCreations,
+  loadAdminDashboardMetrics,
+  loadAdminDashboardParcelCreations,
+} from './adminApi.js'
+import AdminAccountCreationsChart from './AdminAccountCreationsChart.jsx'
+import AdminParcelCreationsChart from './AdminParcelCreationsChart.jsx'
+import AdminMarketplaceConversationCreationsChart from './AdminMarketplaceConversationCreationsChart.jsx'
 import { adminText } from './adminTranslations.js'
 
 const DASHBOARD_METRICS = [
   { key: 'for_sale', label: 'Listings for sale now' },
-  { key: 'contacted_parcels', label: 'Contacted listings' },
+  { key: 'contacted_parcels', label: 'Visible listings contacted in the last 30 days' },
   { key: 'awaiting_first_response', label: 'Conversations awaiting first reply' },
   { key: 'registrations', label: 'Registrations this month' },
   { key: 'recent_reports', label: 'Recent internal findings' },
@@ -28,6 +36,9 @@ function metricPeriod(key, metric, data, language) {
   if (key === 'for_sale' || key === 'awaiting_first_response') {
     return `${adminText(lang, 'Current snapshot')} · ${formatUtc(data.as_of, language)}`
   }
+  if (key === 'contacted_parcels') {
+    return `${adminText(lang, 'Current snapshot')} · ${adminText(lang, 'Last 30 days UTC')} · ${formatUtc(metric.period.start, language)} – ${formatUtc(metric.period.end, language)}`
+  }
   if (key === 'registrations') {
     return `${adminText(lang, 'UTC calendar month')} · ${metric.period.month}`
   }
@@ -42,6 +53,8 @@ function metricHref(key, metric) {
     return `/admin/parcels?${params.toString()}`
   }
   if (key === 'contacted_parcels') {
+    params.set('sell_category', 'to_sell')
+    params.set('visibility', 'visible')
     params.set('contacted_from', metric.period.start)
     params.set('contacted_to', metric.period.end)
     return `/admin/parcels?${params.toString()}`
@@ -62,7 +75,10 @@ function metricHref(key, metric) {
   return null
 }
 
-export function AdminDashboardView({ model, state, onRetry, lang = 'en' }) {
+export function AdminDashboardView({
+  model, state, chartState, parcelChartState, conversationChartState,
+  onRetry, onRetryChart, onRetryParcelChart, onRetryConversationChart, lang = 'en',
+}) {
   const dashboardState = state ?? { kind: 'loading' }
   const language = lang === 'fr' ? 'fr-FR' : 'en-GB'
   const t = (text) => adminText(lang, text)
@@ -82,7 +98,18 @@ export function AdminDashboardView({ model, state, onRetry, lang = 'en' }) {
                 {dashboardState.kind === 'error' && <p className="admin-data-unavailable">{t('Data unavailable')}</p>}
                 {dashboardState.kind === 'ready' && metric && (
                   <>
-                    <strong className="admin-metric-value">{metric.count.toLocaleString(language)}</strong>
+                    <strong className="admin-metric-value">
+                      {key === 'contacted_parcels'
+                        ? `${metric.count.toLocaleString(language)} / ${metric.total_count.toLocaleString(language)}`
+                        : metric.count.toLocaleString(language)}
+                    </strong>
+                    {key === 'contacted_parcels' && (
+                      <span className="admin-metric-percentage">
+                        {metric.total_count === 0
+                          ? t('Unavailable')
+                          : `${((metric.count / metric.total_count) * 100).toLocaleString(language, { maximumFractionDigits: 1 })}%`}
+                      </span>
+                    )}
                     {metric.count === 0 && <span className="admin-metric-zero">{t('No records match this definition')}</span>}
                     <span className="admin-metric-period">{metricPeriod(key, metric, dashboardState.data, language)}</span>
                     <p className="admin-metric-definition">{t(metric.definition)}</p>
@@ -100,6 +127,11 @@ export function AdminDashboardView({ model, state, onRetry, lang = 'en' }) {
           <button className="admin-retry-button" type="button" onClick={onRetry}>{t('Retry')}</button>
         </div>
       )}
+      <AdminAccountCreationsChart state={chartState} onRetry={onRetryChart} lang={lang}/>
+      <AdminParcelCreationsChart state={parcelChartState} onRetry={onRetryParcelChart} lang={lang}/>
+      <AdminMarketplaceConversationCreationsChart
+        state={conversationChartState} onRetry={onRetryConversationChart} lang={lang}
+      />
     </section>
   )
 }
@@ -120,7 +152,13 @@ function AdminDashboardGlyph({ metric }) {
 
 export default function AdminDashboard({ model, request, lang = 'en' }) {
   const [attempt, setAttempt] = useState(0)
+  const [chartAttempt, setChartAttempt] = useState(0)
+  const [parcelChartAttempt, setParcelChartAttempt] = useState(0)
+  const [conversationChartAttempt, setConversationChartAttempt] = useState(0)
   const [state, setState] = useState({ kind: 'loading', request: null, attempt: -1 })
+  const [chartState, setChartState] = useState({ kind: 'loading', request: null, attempt: -1 })
+  const [parcelChartState, setParcelChartState] = useState({ kind: 'loading', request: null, attempt: -1 })
+  const [conversationChartState, setConversationChartState] = useState({ kind: 'loading', request: null, attempt: -1 })
 
   useEffect(() => {
     let active = true
@@ -130,8 +168,57 @@ export default function AdminDashboard({ model, request, lang = 'en' }) {
     return () => { active = false }
   }, [request, attempt])
 
+  useEffect(() => {
+    let active = true
+    loadAdminDashboardAuthAccountCreations(request)
+      .then((data) => { if (active) setChartState({ kind: 'ready', data, request, attempt: chartAttempt }) })
+      .catch((error) => { if (active) setChartState({ kind: 'error', error, request, attempt: chartAttempt }) })
+    return () => { active = false }
+  }, [request, chartAttempt])
+
+  useEffect(() => {
+    let active = true
+    loadAdminDashboardParcelCreations(request)
+      .then((data) => { if (active) setParcelChartState({ kind: 'ready', data, request, attempt: parcelChartAttempt }) })
+      .catch((error) => { if (active) setParcelChartState({ kind: 'error', error, request, attempt: parcelChartAttempt }) })
+    return () => { active = false }
+  }, [request, parcelChartAttempt])
+
+  useEffect(() => {
+    let active = true
+    loadAdminDashboardMarketplaceConversationCreations(request)
+      .then((data) => {
+        if (active) setConversationChartState({ kind: 'ready', data, request, attempt: conversationChartAttempt })
+      })
+      .catch((error) => {
+        if (active) setConversationChartState({ kind: 'error', error, request, attempt: conversationChartAttempt })
+      })
+    return () => { active = false }
+  }, [request, conversationChartAttempt])
+
   const visibleState = state.request === request && state.attempt === attempt
     ? state
     : { kind: 'loading' }
-  return <AdminDashboardView model={model} state={visibleState} onRetry={() => setAttempt((value) => value + 1)} lang={lang}/>
+  const visibleChartState = chartState.request === request && chartState.attempt === chartAttempt
+    ? chartState
+    : { kind: 'loading' }
+  const visibleParcelChartState = parcelChartState.request === request && parcelChartState.attempt === parcelChartAttempt
+    ? parcelChartState
+    : { kind: 'loading' }
+  const visibleConversationChartState = conversationChartState.request === request &&
+    conversationChartState.attempt === conversationChartAttempt
+    ? conversationChartState
+    : { kind: 'loading' }
+  return <AdminDashboardView
+    model={model}
+    state={visibleState}
+    chartState={visibleChartState}
+    parcelChartState={visibleParcelChartState}
+    conversationChartState={visibleConversationChartState}
+    onRetry={() => setAttempt((value) => value + 1)}
+    onRetryChart={() => setChartAttempt((value) => value + 1)}
+    onRetryParcelChart={() => setParcelChartAttempt((value) => value + 1)}
+    onRetryConversationChart={() => setConversationChartAttempt((value) => value + 1)}
+    lang={lang}
+  />
 }

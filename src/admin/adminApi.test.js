@@ -6,6 +6,9 @@ import {
   hideAdminParcel,
   createAdminConversationReport,
   loadAdminDashboardMetrics,
+  loadAdminDashboardAuthAccountCreations,
+  loadAdminDashboardMarketplaceConversationCreations,
+  loadAdminDashboardParcelCreations,
   loadAdminDashboardRegistrations,
   loadAdminConversation,
   loadAdminConversations,
@@ -18,7 +21,108 @@ import {
   loadAdminUsers,
   restoreAdminParcel,
 } from './adminApi.js'
-import { ADMIN_DASHBOARD_DEFINITIONS } from './adminDashboardData.js'
+import {
+  ADMIN_DASHBOARD_DEFINITIONS,
+  ADMIN_MARKETPLACE_CONVERSATION_CREATIONS_DEFINITION,
+  ADMIN_MARKETPLACE_CONVERSATION_CREATIONS_SOURCES,
+} from './adminDashboardData.js'
+
+test('Marketplace conversation chart loader accepts the linked-conversation monthly response', async () => {
+  const calls = []
+  const payload = {
+    definition: ADMIN_MARKETPLACE_CONVERSATION_CREATIONS_DEFINITION,
+    sources: ADMIN_MARKETPLACE_CONVERSATION_CREATIONS_SOURCES,
+    timezone: 'UTC',
+    as_of: '2026-03-05T12:00:00+00:00',
+    first_month: '2026-01',
+    current_month: '2026-03',
+    current_month_incomplete: true,
+    unusable_created_at_count: 0,
+    monthly: [
+      { month: '2026-01', count: 2 },
+      { month: '2026-02', count: 0 },
+      { month: '2026-03', count: 1 },
+    ],
+  }
+  const result = await loadAdminDashboardMarketplaceConversationCreations(async (path, options) => {
+    calls.push({ path, options })
+    return { success: true, data: payload }
+  })
+  assert.deepEqual(calls, [{
+    path: '/admin/dashboard/marketplace-conversation-creations',
+    options: { method: 'GET' },
+  }])
+  assert.deepEqual(result, payload)
+  await assert.rejects(
+    loadAdminDashboardMarketplaceConversationCreations(async () => ({
+      success: true, data: { ...payload, monthly: [{ month: '2026-01', count: -1 }] },
+    })),
+    (error) => error.kind === 'protocol',
+  )
+})
+
+test('Auth account creation loader accepts the deployed success/data/as_of/monthly response', async () => {
+  const calls = []
+  const payload = {
+    definition: 'Supabase Auth users still present when read, grouped by auth.users.created_at in UTC calendar months; the current month is incomplete.',
+    source: 'auth.users.created_at',
+    timezone: 'UTC',
+    as_of: '2025-12-15T12:30:00+00:00',
+    first_month: '2025-10',
+    current_month: '2025-12',
+    current_month_incomplete: true,
+    monthly: [
+      { month: '2025-10', count: 1 },
+      { month: '2025-11', count: 0 },
+      { month: '2025-12', count: 2 },
+    ],
+  }
+  const result = await loadAdminDashboardAuthAccountCreations(async (path, options) => {
+    calls.push({ path, options })
+    return { success: true, data: payload }
+  })
+  assert.deepEqual(calls, [{
+    path: '/admin/dashboard/auth-account-creations',
+    options: { method: 'GET' },
+  }])
+  assert.deepEqual(result, payload)
+  await assert.rejects(
+    loadAdminDashboardAuthAccountCreations(async () => ({ success: true, data: { ...payload, monthly: [{ month: '2025-10', count: -1 }, { month: '2025-11', count: 0 }, { month: '2025-12', count: 2 }] } })),
+    (error) => error.kind === 'protocol',
+  )
+})
+
+test('parcel creation loader reads the protected active-plus-archive monthly endpoint', async () => {
+  const calls = []
+  const payload = {
+    definition: 'Active rows in main_parcels plus retained deleted_parcels snapshots, grouped by the original created_at in UTC calendar months, regardless of sale category or manual visibility. Rows without a usable created_at are excluded and reported separately. Physical deletions without a retained archive are not represented; the current month is incomplete.',
+    sources: ['main_parcels.created_at', 'deleted_parcels.parcel_snapshot.created_at'],
+    timezone: 'UTC',
+    as_of: '2026-03-10T12:30:00+00:00',
+    first_month: '2026-01',
+    current_month: '2026-03',
+    current_month_incomplete: true,
+    unusable_created_at_count: 0,
+    monthly: [
+      { month: '2026-01', count: 3 },
+      { month: '2026-02', count: 0 },
+      { month: '2026-03', count: 2 },
+    ],
+  }
+  const result = await loadAdminDashboardParcelCreations(async (path, options) => {
+    calls.push({ path, options })
+    return { success: true, data: payload }
+  })
+  assert.deepEqual(calls, [{
+    path: '/admin/dashboard/parcel-creations',
+    options: { method: 'GET' },
+  }])
+  assert.deepEqual(result, payload)
+  await assert.rejects(
+    loadAdminDashboardParcelCreations(async () => ({ success: true, data: { ...payload, sources: ['main_parcels.created_at'] } })),
+    (error) => error.kind === 'protocol',
+  )
+})
 
 test('registration dashboard loader uses a bounded month query and validates card/chart agreement', async () => {
   const calls = []
@@ -385,7 +489,7 @@ test('dashboard metrics loader requires five valid indicators from the protected
   const data = {
     as_of: '2026-10-19T12:00:00+00:00',
     for_sale: { count: 0, period: { kind: 'current_snapshot' }, definition: ADMIN_DASHBOARD_DEFINITIONS.for_sale },
-    contacted_parcels: { count: 0, period: { start: '2026-09-19T12:00:00+00:00', end: '2026-10-19T12:00:00+00:00' }, definition: ADMIN_DASHBOARD_DEFINITIONS.contacted_parcels },
+    contacted_parcels: { count: 0, total_count: 0, period: { start: '2026-09-19T12:00:00+00:00', end: '2026-10-19T12:00:00+00:00' }, definition: ADMIN_DASHBOARD_DEFINITIONS.contacted_parcels },
     awaiting_first_response: { count: 0, period: { kind: 'current_snapshot' }, definition: ADMIN_DASHBOARD_DEFINITIONS.awaiting_first_response },
     registrations: { count: 0, period: { start: '2026-10-01T00:00:00+00:00', end: '2026-11-01T00:00:00+00:00', month: '2026-10' }, definition: ADMIN_DASHBOARD_DEFINITIONS.registrations },
     recent_reports: { count: 0, period: { start: '2026-09-19T12:00:00+00:00', end: '2026-10-19T12:00:00+00:00' }, definition: ADMIN_DASHBOARD_DEFINITIONS.recent_reports },
