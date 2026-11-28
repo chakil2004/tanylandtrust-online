@@ -116,6 +116,9 @@
 .admin-filter-pill:disabled, .admin-filter-row input:disabled { opacity: 1; cursor: not-allowed; }
 .admin-filter-row input::placeholder { color: #332f30; opacity: 1; }
 .admin-filter-row .admin-date-filter { width: 125px; min-width: 0; padding-inline: 8px; color-scheme: light; }
+.admin-reset-filters-button { justify-self: start; min-height: 32px; padding: 5px 11px; border: 1px solid rgb(255 255 255 / 58%); border-radius: 5px; color: #f4f2e8; background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
+.admin-reset-filters-button:hover { color: #102b20; background: #f1f0e6; }
+.admin-reset-filters-button:focus-visible { outline: 3px solid #e0bd57; outline-offset: 2px; }
 .admin-table-wrap { width: 100%; min-width: 0; overflow: auto; border-radius: 6px; }
 .admin-table-wrap table { width: 100%; border-collapse: collapse; color: #f6f4f0; text-align: left; }
 .admin-table-wrap th { height: 29px; padding: 7px 11px; color: #211f20; background: #d0c8c8; font-size: 9px; font-weight: 500; text-align: center; white-space: nowrap; }
@@ -132,6 +135,7 @@
 .admin-dashboard-panel .admin-metric-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
 .admin-dashboard-panel .admin-metric-card:nth-child(-n + 3) { grid-column: span 2; }
 .admin-dashboard-panel .admin-metric-card:nth-child(n + 4) { grid-column: span 3; }
+.admin-dashboard-panel .admin-metric-card:nth-child(6) { grid-column: span 6; }
 .admin-metric-copy { min-width: 0; }
 .admin-metric-icon { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 50%; color: #507457; background: #edf3eb; }
 .admin-metric-icon svg { width: 19px; height: 19px; }
@@ -441,6 +445,7 @@
   .admin-search-row input { width: calc(100% - 64px); }
   .admin-search-row .admin-search-button { width: 58px; }
   .admin-filter-row { gap: 5px; }
+  .admin-reset-filters-button { min-height: 40px; }
   .admin-filter-row input, .admin-filter-pill { min-width: 58px; padding-inline: 9px; font-size: 8px; }
   .admin-filter-row .admin-date-filter { width: 106px; }
   .admin-table-wrap th { padding: 7px 8px; }

@@ -16,6 +16,7 @@ const DASHBOARD_METRICS = [
   { key: 'contacted_parcels', label: 'Visible listings contacted in the last 30 days' },
   { key: 'awaiting_first_response', label: 'Conversations awaiting first reply' },
   { key: 'registrations', label: 'Registrations this month' },
+  { key: 'profiles_total', label: 'Profiles currently present' },
   { key: 'recent_reports', label: 'Recent internal findings' },
 ]
 
@@ -33,7 +34,7 @@ function formatUtc(value, language) {
 
 function metricPeriod(key, metric, data, language) {
   const lang = language.startsWith('fr') ? 'fr' : 'en'
-  if (key === 'for_sale' || key === 'awaiting_first_response') {
+  if (key === 'for_sale' || key === 'awaiting_first_response' || key === 'profiles_total') {
     return `${adminText(lang, 'Current snapshot')} · ${formatUtc(data.as_of, language)}`
   }
   if (key === 'contacted_parcels') {
@@ -67,6 +68,7 @@ function metricHref(key, metric) {
     params.set('date_to', endExclusive.toISOString().slice(0, 10))
     return `/admin/users?${params.toString()}`
   }
+  if (key === 'profiles_total') return '/admin/users'
   if (key === 'recent_reports') {
     params.set('created_from', metric.period.start)
     params.set('created_to', metric.period.end)
@@ -113,7 +115,7 @@ export function AdminDashboardView({
                     {metric.count === 0 && <span className="admin-metric-zero">{t('No records match this definition')}</span>}
                     <span className="admin-metric-period">{metricPeriod(key, metric, dashboardState.data, language)}</span>
                     <p className="admin-metric-definition">{t(metric.definition)}</p>
-                    <a className="admin-metric-open" href={href}>{t('Open filtered list')} <span aria-hidden="true">→</span></a>
+                    <a className="admin-metric-open" href={href}>{t(key === 'profiles_total' ? 'Open list' : 'Open filtered list')} <span aria-hidden="true">→</span></a>
                   </>
                 )}
               </div>
@@ -141,7 +143,7 @@ function AdminDashboardGlyph({ metric }) {
   if (metric === 'contacted_parcels' || metric === 'awaiting_first_response') {
     return <svg {...common}><path d="M4 5h16v12H9l-5 3V5Z"/><path d="M8 9h8M8 13h5"/></svg>
   }
-  if (metric === 'registrations') {
+  if (metric === 'registrations' || metric === 'profiles_total') {
     return <svg {...common}><circle cx="9" cy="8" r="3"/><path d="M3.5 20v-1.5A5.5 5.5 0 0 1 9 13h1M17 13v7M13.5 16.5h7"/></svg>
   }
   if (metric === 'recent_reports') {
